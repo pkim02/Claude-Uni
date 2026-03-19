@@ -8,23 +8,42 @@ import {
   getTask,
   updateTask,
   deleteTask,
+  getPendingTasks,
+  getDraftReadyTasks,
+  getUpcomingTasks,
 } from "@/lib/learnus/task-store";
 import type { HomeworkTask } from "@/lib/learnus/types";
 
 // GET - List all tasks
-export async function GET() {
-  const tasks = getAllTasks();
+export async function GET(request: NextRequest) {
+  const filter = request.nextUrl.searchParams.get("filter");
+
+  let tasks: HomeworkTask[];
+  switch (filter) {
+    case "pending":
+      tasks = getPendingTasks();
+      break;
+    case "draft_ready":
+      tasks = getDraftReadyTasks();
+      break;
+    case "upcoming":
+      tasks = getUpcomingTasks();
+      break;
+    default:
+      tasks = getAllTasks();
+  }
+
   return NextResponse.json({ tasks });
 }
 
-// POST - Create a task or solve one
+// POST - Create, solve, auto-draft, update, or delete tasks
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
 
     if (action === "create") {
-      const { courseId, courseName, title, description, dueDate, type } = body;
+      const { courseId, courseName, title, description, dueDate, type, autoDraft } = body;
 
       const task: HomeworkTask = {
         id: `task-${Date.now()}`,
@@ -33,25 +52,33 @@ export async function POST(request: NextRequest) {
         title,
         description: description || "",
         dueDate: dueDate || null,
-        status: "pending",
+        status: autoDraft ? "new" : "pending",
         type: type || "assignment",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       saveTask(task);
+
+      // Auto-draft if requested
+      if (autoDraft) {
+        autoDraftTask(task);
+      }
+
       return NextResponse.json({ task });
     }
 
-    if (action === "solve") {
+    if (action === "solve" || action === "auto_draft") {
       const { taskId, mode } = body;
       const task = getTask(taskId);
       if (!task) {
         return NextResponse.json({ error: "Task not found" }, { status: 404 });
       }
 
-      // Update status to in_progress
-      updateTask(taskId, { status: "in_progress" });
+      const isDraft = action === "auto_draft" || mode === "solve";
+
+      // Update status
+      updateTask(taskId, { status: isDraft ? "drafting" : "in_progress" });
 
       // Get course context if available
       let courseContext = "";
@@ -80,11 +107,37 @@ export async function POST(request: NextRequest) {
       ]);
 
       const updated = updateTask(taskId, {
-        status: "completed",
+        status: isDraft ? "draft_ready" : "completed",
         solution,
+        draftSolution: isDraft ? solution : undefined,
+        draftedAt: isDraft ? new Date().toISOString() : undefined,
       });
 
       return NextResponse.json({ task: updated, solution });
+    }
+
+    if (action === "mark_reviewed") {
+      const { taskId, finalSolution } = body;
+      const updated = updateTask(taskId, {
+        status: "reviewed",
+        finalSolution,
+      });
+      if (!updated) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+      return NextResponse.json({ task: updated });
+    }
+
+    if (action === "mark_submitted") {
+      const { taskId } = body;
+      const updated = updateTask(taskId, {
+        status: "submitted",
+        submittedAt: new Date().toISOString(),
+      });
+      if (!updated) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+      return NextResponse.json({ task: updated });
     }
 
     if (action === "update") {
@@ -109,5 +162,44 @@ export async function POST(request: NextRequest) {
       { error: "Failed to process task" },
       { status: 500 }
     );
+  }
+}
+
+// Fire-and-forget auto-draft
+async function autoDraftTask(task: HomeworkTask) {
+  try {
+    updateTask(task.id, { status: "drafting" });
+
+    let courseContext = "";
+    let courseName = task.courseName;
+    if (task.courseId) {
+      courseContext = getCourseContext(task.courseId);
+      const course = getCourse(task.courseId);
+      if (course) courseName = course.name;
+    }
+
+    const prompt = buildHomeworkSolverPrompt(
+      courseName,
+      courseContext,
+      `${task.title}\n\n${task.description}`,
+      "solve"
+    );
+
+    const solution = await generateResponse(prompt, [
+      {
+        role: "user",
+        content: "Please complete this assignment for me. Provide a full, submission-ready solution.",
+      },
+    ]);
+
+    updateTask(task.id, {
+      status: "draft_ready",
+      solution,
+      draftSolution: solution,
+      draftedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Auto-draft failed:", error);
+    updateTask(task.id, { status: "pending" });
   }
 }
