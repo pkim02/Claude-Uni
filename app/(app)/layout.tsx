@@ -1,11 +1,32 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GraduationCap, LayoutDashboard, Settings, LogOut, Globe, ClipboardList } from "lucide-react";
+import { GraduationCap, LayoutDashboard, Settings, LogOut, Globe, ClipboardList, Bell } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await fetch("/api/learnus/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unreadCount);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUnread();
+    // Poll every 60 seconds for notification count
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
+  }, [fetchUnread]);
 
   function handleLogout() {
     localStorage.removeItem("claude-uni-user");
@@ -41,6 +62,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             icon={<ClipboardList className="w-4 h-4" />}
             label="Homework Board"
             active={pathname === "/learnus/tasks"}
+          />
+          <SidebarLink
+            href="/learnus/notifications"
+            icon={
+              <div className="relative">
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </div>
+            }
+            label="Notifications"
+            active={pathname === "/learnus/notifications"}
           />
           <SidebarLink
             href="/settings"

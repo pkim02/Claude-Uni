@@ -38,3 +38,29 @@ export interface HomeworkTask {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface LearnUSNotification {
+  id: string;
+  type: "assignment" | "material" | "announcement" | "grade" | "quiz" | "other";
+  courseName: string;
+  title: string;
+  description: string;
+  dueDate: string | null;
+  sourceUrl?: string;
+  read: boolean;
+  autoTaskCreated: boolean;
+  detectedAt: string;
+}
+
+export interface NotificationCheckConfig {
+  username: string;
+  password: string;
+  maxIterations?: number;
+}
+
+export interface NotificationCheckResult {
+  success: boolean;
+  notifications: LearnUSNotification[];
+  tasksCreated: number;
+  errors: string[];
+}
