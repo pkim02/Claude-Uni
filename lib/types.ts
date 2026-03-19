@@ -39,7 +39,7 @@ export interface Material {
   id: string;
   course_id: string;
   filename: string;
-  file_type: "pdf" | "image" | "text";
+  file_type: "pdf" | "image" | "text" | "pptx" | "docx" | "hwp" | "other";
   content_text: string;
   storage_path: string;
   created_at: string;

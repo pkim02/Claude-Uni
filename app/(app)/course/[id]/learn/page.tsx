@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, Send, Loader2, BookOpen, Lightbulb, HelpCircle } from "lucide-react";
+import { ArrowLeft, Send, Loader2, BookOpen, Lightbulb, HelpCircle, Zap, GraduationCap } from "lucide-react";
 import type { Course, ChatMessage } from "@/lib/types";
 
 export default function LearnPage() {
@@ -14,6 +14,7 @@ export default function LearnPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [mode, setMode] = useState<"tutor" | "solve">("tutor");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -65,6 +66,7 @@ export default function LearnPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId,
+          mode,
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,
@@ -146,9 +148,37 @@ export default function LearnPage() {
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="font-semibold text-sm">{course?.name || "Loading..."}</h1>
-          <p className="text-xs text-[var(--muted-foreground)]">AI Tutor</p>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {mode === "tutor" ? "AI Tutor — teaches you" : "Solve Mode — gives answers"}
+          </p>
+        </div>
+
+        {/* Mode Toggle */}
+        <div className="flex items-center bg-[var(--muted)] rounded-lg p-0.5">
+          <button
+            onClick={() => setMode("tutor")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "tutor"
+                ? "bg-white text-[var(--foreground)] shadow-sm"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            Tutor
+          </button>
+          <button
+            onClick={() => setMode("solve")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              mode === "solve"
+                ? "bg-brand-500 text-white shadow-sm"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Solve
+          </button>
         </div>
       </div>
 

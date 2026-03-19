@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GraduationCap, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { GraduationCap, LayoutDashboard, Settings, LogOut, Globe, ClipboardList } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +29,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             icon={<LayoutDashboard className="w-4 h-4" />}
             label="Dashboard"
             active={pathname === "/dashboard"}
+          />
+          <SidebarLink
+            href="/learnus"
+            icon={<Globe className="w-4 h-4" />}
+            label="LearNUS Import"
+            active={pathname === "/learnus"}
+          />
+          <SidebarLink
+            href="/learnus/tasks"
+            icon={<ClipboardList className="w-4 h-4" />}
+            label="Homework Board"
+            active={pathname === "/learnus/tasks"}
           />
           <SidebarLink
             href="/settings"

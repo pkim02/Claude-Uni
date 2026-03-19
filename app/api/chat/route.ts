@@ -5,7 +5,7 @@ import { getCourse, getCourseContext } from "@/lib/store";
 
 export async function POST(request: NextRequest) {
   try {
-    const { courseId, messages } = await request.json();
+    const { courseId, messages, mode } = await request.json();
 
     const course = getCourse(courseId);
     if (!course) {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const context = getCourseContext(courseId);
-    const systemPrompt = buildTutorPrompt(course.name, context);
+    const systemPrompt = buildTutorPrompt(course.name, context, mode || "tutor");
 
     const stream = await streamChat(systemPrompt, messages);
 

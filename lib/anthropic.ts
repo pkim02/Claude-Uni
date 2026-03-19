@@ -33,4 +33,31 @@ export async function generateResponse(
   return block.type === "text" ? block.text : "";
 }
 
+// Computer Use API support for browser automation
+const computerUseClient = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  defaultHeaders: { "anthropic-beta": "computer-use-2024-10-22" },
+});
+
+export async function computerUseMessage(
+  systemPrompt: string,
+  messages: any[],
+) {
+  return computerUseClient.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages,
+    tools: [
+      {
+        type: "computer_20241022" as any,
+        name: "computer",
+        display_width_px: 1280,
+        display_height_px: 800,
+        display_number: 1,
+      } as any,
+    ],
+  });
+}
+
 export default client;
