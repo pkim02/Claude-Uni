@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Claude University",
+  "version": "0.1.0",
+  "description": "AI-powered LearNUS replacement for Yonsei University students",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://learnus.yonsei.ac.kr/*",
+    "*://claude.ai/*",
+    "*://chatgpt.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "chrome_url_overrides": {
+    "newtab": "src/newtab/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://learnus.yonsei.ac.kr/*"],
+      "js": ["src/content/learnus/index.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://claude.ai/*"],
+      "js": ["src/content/claude-ai/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "public/icons/icon-16.png",
+    "48": "public/icons/icon-48.png",
+    "128": "public/icons/icon-128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "public/icons/icon-16.png",
+      "48": "public/icons/icon-48.png"
+    },
+    "default_title": "Claude University"
+  }
+}
